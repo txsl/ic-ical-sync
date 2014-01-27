@@ -2,6 +2,12 @@ from pyexchange import Exchange2010Service, ExchangeNTLMAuthConnection
 from datetime import datetime
 from pytz import timezone
 import getpass
+from sqlalchemy.orm import sessionmaker
+
+from models import db, CalEntry
+
+Session = sessionmaker(bind=db)
+session = Session()
 
 # This modification: https://code.google.com/p/python-ntlm/issues/detail?id=17 needs to be made to NTLM, otherwise this code fails.
 
@@ -31,4 +37,7 @@ event= service.calendar().new_event(
 
 event.create()
 
-print event.id
+entry = CalEntry(user=USERNAME, exchid=event.id, icaluid='test')
+
+session.add(entry)
+session.commit()
