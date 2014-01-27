@@ -36,3 +36,4 @@ nosetests.xml
 .pydevproject
 
 credentials.py
+.DS_Store
