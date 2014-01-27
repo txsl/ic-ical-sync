@@ -30,3 +30,5 @@ event= service.calendar().new_event(
 )
 
 event.create()
+
+print event.id
