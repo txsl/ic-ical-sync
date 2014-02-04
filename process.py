@@ -3,13 +3,15 @@ from datetime import datetime
 from pytz import timezone
 import getpass
 from sqlalchemy.orm import sessionmaker
+import sqlalchemy
 
 from models import db, CalEntry
 
 Session = sessionmaker(bind=db)
 session = Session()
 
-# This modification: https://code.google.com/p/python-ntlm/issues/detail?id=17 needs to be made to NTLM, otherwise this code fails.
+# This modification: https://code.google.com/p/python-ntlm/issues/detail?id=17 
+# needs to be made to NTLM, otherwise this code fails.
 
 URL = u'https://exchange.imperial.ac.uk/EWS/Exchange.asmx'
 
@@ -30,8 +32,8 @@ service = Exchange2010Service(connection)
 event= service.calendar().new_event(
 	subject= u"This is a test",
 	location= u"EEE",
-	start=datetime(2014,2,1,15,0,0, tzinfo=timezone("Europe/London")),
-	end=datetime(2014,2,1,16,0,0, tzinfo=timezone("Europe/London")),
+	start=datetime(2014,2,8,15,0,0, tzinfo=timezone("Europe/London")),
+	end=datetime(2014,2,8,16,30,0, tzinfo=timezone("Europe/London")),
 	text_body= u"does this appear"
 )
 
@@ -40,4 +42,13 @@ event.create()
 entry = CalEntry(user=USERNAME, exchid=event.id, icaluid='test')
 
 session.add(entry)
+session.commit()
+
+cur = session.query(CalEntry).filter_by(removaltime=None, user=USERNAME).all()
+
+for i in cur:
+	event = service.calendar().get_event(id=i.exchid)
+	event.cancel()
+	i.removaltime = sqlalchemy.func.now()
+
 session.commit()
