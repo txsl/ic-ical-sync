@@ -61,6 +61,8 @@ def process_cal(cal, exclass):
 	    if component.name == "VEVENT":
         	for c in component.keys():
         		print c, component.get(c).to_ical()
+        	if "Humanities" in component.get('summary').to_ical():
+        		continue
         	# print component.get('dtstart').to_ical()
         	# print component.get('dtend')
         	# print component.get('dtstamp')
@@ -83,8 +85,8 @@ if __name__ == '__main__':
 
 	c = ExchangeCal(session, USERNAME, PASSWORD)
 	c.cancel_current_events()
-	process_cal('/Users/txsl/Downloads/calendar.ics', c)
-	
+	process_cal('/Users/txsl/Downloads/calendar_full.ics', c)
+
 	# c.create_event('test', 'EEE408', datetime(2014,2,10,15,0,0, tzinfo=timezone("Europe/London")), datetime(2014,2,10,15,0,0, tzinfo=timezone("Europe/London")), 'Sending some stuff')
 	
 	#
