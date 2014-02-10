@@ -4,6 +4,7 @@ from pytz import timezone
 import getpass
 from sqlalchemy.orm import sessionmaker
 import sqlalchemy
+from icalendar import Calendar, Event
 
 from models import db, CalEntry
 
@@ -53,6 +54,18 @@ class ExchangeCal:
 		for e in self.list_current_events():
 			self.cancel_event(e)
 
+def open_cal(cal):
+	g = open(cal,'rb')
+	gcal = Calendar.from_ical(g.read())
+	for component in gcal.walk():
+	    if component.name == "VEVENT":
+        	for c in component.keys():
+        		print c, component.get(c).to_ical()
+        	# print component.get('dtstart').to_ical()
+        	# print component.get('dtend')
+        	# print component.get('dtstamp')
+	g.close()
+
 if __name__ == '__main__':
 	Session = sessionmaker(bind=db)
 	session = Session()
@@ -66,6 +79,8 @@ if __name__ == '__main__':
 
 	c = ExchangeCal(session, USERNAME, PASSWORD)
 
-	c.create_event('test', 'EEE408', datetime(2014,2,10,15,0,0, tzinfo=timezone("Europe/London")), datetime(2014,2,10,15,0,0, tzinfo=timezone("Europe/London")), 'Sending some stuff')
-	c.cancel_current_events()
-	# 
+	open_cal('/Users/txsl/Downloads/calendar.ics')
+
+	# c.create_event('test', 'EEE408', datetime(2014,2,10,15,0,0, tzinfo=timezone("Europe/London")), datetime(2014,2,10,15,0,0, tzinfo=timezone("Europe/London")), 'Sending some stuff')
+	# c.cancel_current_events()
+	#
