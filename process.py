@@ -7,48 +7,65 @@ import sqlalchemy
 
 from models import db, CalEntry
 
-Session = sessionmaker(bind=db)
-session = Session()
-
 # This modification: https://code.google.com/p/python-ntlm/issues/detail?id=17 
 # needs to be made to NTLM, otherwise this code fails.
 
-URL = u'https://exchange.imperial.ac.uk/EWS/Exchange.asmx'
 
-try:
-	from credentials import *
-except ImportError:
-	print "Credentials file not found. Please enter your details below..."
-	USERNAME = u'ic\\' + raw_input("Imperial College Username: ")
-	PASSWORD = getpass.getpass("Imperial College Password:")
+class ExchangeCal:
 
-# Set up the connection to Exchange
-connection = ExchangeNTLMAuthConnection(url=URL,
-                                     username=USERNAME,
-                                     password=PASSWORD)
+	URL = u'https://exchange.imperial.ac.uk/EWS/Exchange.asmx'
 
-service = Exchange2010Service(connection)
+	def __init__(self, db, username, password):
+		# Set up the connection to Exchange
+		connection = ExchangeNTLMAuthConnection(url=self.URL,
+		                                     username=username,
+		                                     password=password)
+		self.username = username
+		self.service = Exchange2010Service(connection)
 
-event= service.calendar().new_event(
-	subject= u"This is a test",
-	location= u"EEE",
-	start=datetime(2014,2,8,15,0,0, tzinfo=timezone("Europe/London")),
-	end=datetime(2014,2,8,16,30,0, tzinfo=timezone("Europe/London")),
-	text_body= u"does this appear"
-)
+		self.db = db
 
-event.create()
+	def create_event(self, subject, location, start, end, text_body):
+		event= self.service.calendar().new_event(
+			subject= subject.decode('unicode-escape'),
+			location= location.decode('unicode-escape'),
+			start=start,
+			end=end,
+			text_body= text_body.decode('unicode-escape')
+			)
+		event.create()
 
-entry = CalEntry(user=USERNAME, exchid=event.id, icaluid='test')
+		entry = CalEntry(user=self.username, exchid=event.id, icaluid='test')
 
-session.add(entry)
-session.commit()
+		self.db.add(entry)
+		self.db.commit()
 
-cur = session.query(CalEntry).filter_by(removaltime=None, user=USERNAME).all()
+	def cancel_event(self, event):
+		exch_event = self.service.calendar().get_event(id=event.exchid)
+		exch_event.cancel()
+		event.removaltime = sqlalchemy.func.now()
+		self.db.commit()
 
-for i in cur:
-	event = service.calendar().get_event(id=i.exchid)
-	event.cancel()
-	i.removaltime = sqlalchemy.func.now()
+	def list_current_events(self):
+		return self.db.query(CalEntry).filter_by(removaltime=None, user=self.username).all()
 
-session.commit()
+	def cancel_current_events(self):
+		for e in self.list_current_events():
+			self.cancel_event(e)
+
+if __name__ == '__main__':
+	Session = sessionmaker(bind=db)
+	session = Session()
+
+	try:
+		from credentials import *
+	except ImportError:
+		print "Credentials file not found. Please enter your details below..."
+		USERNAME = u'ic\\' + raw_input("Imperial College Username: ")
+		PASSWORD = getpass.getpass("Imperial College Password:")
+
+	c = ExchangeCal(session, USERNAME, PASSWORD)
+
+	c.create_event('test', 'EEE408', datetime(2014,2,10,15,0,0, tzinfo=timezone("Europe/London")), datetime(2014,2,10,15,0,0, tzinfo=timezone("Europe/London")), 'Sending some stuff')
+	c.cancel_current_events()
+	# 
