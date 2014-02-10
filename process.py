@@ -26,7 +26,7 @@ class ExchangeCal:
 
 		self.db = db
 
-	def create_event(self, subject, location, start, end, text_body):
+	def create_event(self, subject, location, start, end, text_body, uid):
 		event= self.service.calendar().new_event(
 			subject= subject.decode('unicode-escape'),
 			location= location.decode('unicode-escape'),
@@ -36,7 +36,7 @@ class ExchangeCal:
 			)
 		event.create()
 
-		entry = CalEntry(user=self.username, exchid=event.id, icaluid='test')
+		entry = CalEntry(user=self.username, exchid=event.id, icaluid=uid)
 
 		self.db.add(entry)
 		self.db.commit()
@@ -54,7 +54,7 @@ class ExchangeCal:
 		for e in self.list_current_events():
 			self.cancel_event(e)
 
-def open_cal(cal):
+def process_cal(cal, exclass):
 	g = open(cal,'rb')
 	gcal = Calendar.from_ical(g.read())
 	for component in gcal.walk():
@@ -64,6 +64,10 @@ def open_cal(cal):
         	# print component.get('dtstart').to_ical()
         	# print component.get('dtend')
         	# print component.get('dtstamp')
+        	start = datetime.strptime(component.get('dtstart').to_ical(), "%Y%m%dT%H%M%SZ")
+        	stop = datetime.strptime(component.get('dtend').to_ical(), "%Y%m%dT%H%M%SZ")
+
+        	exclass.create_event(component.get('summary').to_ical(), component.get('location').to_ical(), start, stop, component.get('description').to_ical(), component.get('uid').to_ical())
 	g.close()
 
 if __name__ == '__main__':
@@ -78,9 +82,9 @@ if __name__ == '__main__':
 		PASSWORD = getpass.getpass("Imperial College Password:")
 
 	c = ExchangeCal(session, USERNAME, PASSWORD)
-
-	open_cal('/Users/txsl/Downloads/calendar.ics')
-
+	c.cancel_current_events()
+	process_cal('/Users/txsl/Downloads/calendar.ics', c)
+	
 	# c.create_event('test', 'EEE408', datetime(2014,2,10,15,0,0, tzinfo=timezone("Europe/London")), datetime(2014,2,10,15,0,0, tzinfo=timezone("Europe/London")), 'Sending some stuff')
-	# c.cancel_current_events()
+	
 	#
