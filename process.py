@@ -54,6 +54,9 @@ class ExchangeCal:
 		for e in self.list_current_events():
 			self.cancel_event(e)
 
+def clean_title(title):
+	return title.replace
+
 def process_cal(cal, exclass):
 	g = open(cal,'rb')
 	gcal = Calendar.from_ical(g.read())
@@ -63,9 +66,6 @@ def process_cal(cal, exclass):
         		print c, component.get(c).to_ical()
         	if "Humanities" in component.get('summary').to_ical():
         		continue
-        	# print component.get('dtstart').to_ical()
-        	# print component.get('dtend')
-        	# print component.get('dtstamp')
         	start = datetime.strptime(component.get('dtstart').to_ical(), "%Y%m%dT%H%M%SZ")
         	stop = datetime.strptime(component.get('dtend').to_ical(), "%Y%m%dT%H%M%SZ")
 
